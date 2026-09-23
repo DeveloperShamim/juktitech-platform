@@ -1,0 +1,39 @@
+# Laravel & Dependencies
+/project/vendor/
+/project/node_modules/
+/project/public/storage
+/project/public/hot
+/project/storage/*.key
+/project/storage/framework/cache/*
+/project/storage/framework/sessions/*
+/project/storage/framework/views/*
+/project/storage/logs/*
+!/project/storage/framework/cache/.gitignore
+!/project/storage/framework/sessions/.gitignore
+!/project/storage/framework/views/.gitignore
+!/project/storage/logs/.gitignore
+
+# Environment secrets
+.env
+project/.env
+project/.env.backup
+*.env
+
+# Large & Binary files
+creativepay.apk
+*.apk
+*.zip
+*.tar.gz
+
+# IDE & OS files
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
+
+# Temporary preview & builds
+project/storage/app/webview-build-bundles/*
+preview-*.html
+render-*.php
+npm-debug.log
+yarn-error.log

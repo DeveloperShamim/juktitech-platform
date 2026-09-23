@@ -1,0 +1,59 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Order extends Model
+{
+    use HasFactory;
+
+    /**
+     * যে কলামগুলোতে ডাটা সেভ করার অনুমতি দেওয়া হয়েছে।
+     * এখানে description, payment_method এবং support_note নতুন যোগ করা হয়েছে।
+     */
+    protected $fillable = [
+        'customer_id',
+        'product_id',
+        'package_tier',
+        'domain_name',
+        'customer_email',
+        'customer_phone',
+        'trx_id',
+        'description',      // পণ্যের বিবরণ বা সাধারণ নোট
+        'support_note',     // সার্ভিস অ্যান্ড সাপোর্ট সংক্রান্ত নোট
+        'notes',            // গ্রাহকের স্পেশাল রিকোয়ারমেন্টস
+        'order_number',
+        'total_amount',
+        'paid_amount',
+        'payment_method',   // পেমেন্ট মাধ্যম (Cash, Bkash, etc.)
+        'due_amount',
+        'hash_token',
+        'status'            // Active, Pending, Processing, Completed, Cancelled
+    ];
+
+    /**
+     * রিলেশনশিপ: প্রতিটি অর্ডার একজন নির্দিষ্ট কাস্টমারের আন্ডারে থাকে।
+     */
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    /**
+     * রিলেশনশিপ: ওয়েবসাইট প্রোডাক্ট/থিম
+     */
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * ঐচ্ছিক: তারিখ ফরম্যাট করার জন্য হেল্পার (ব্লেড ফাইলে ব্যবহারের জন্য)
+     */
+    public function getFormattedDateAttribute()
+    {
+        return $this->created_at ? $this->created_at->format('d M, Y') : '';
+    }
+}

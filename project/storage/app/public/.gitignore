@@ -1,0 +1,4 @@
+*
+!.gitignore
+!webview-app-icons/
+!webview-app-icons/.gitkeep

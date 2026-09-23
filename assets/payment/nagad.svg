@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 40" fill="none">
+  <circle cx="18" cy="20" r="14" stroke="#F7941D" stroke-width="3.5" fill="none"/>
+  <circle cx="18" cy="20" r="9" stroke="#EE1C24" stroke-width="2.5" fill="none" opacity=".85"/>
+  <circle cx="18" cy="20" r="4" fill="#EE1C24"/>
+  <text x="40" y="28" font-family="Arial,Helvetica,sans-serif" font-size="24" font-weight="700" fill="#EE1C24">নগদ</text>
+</svg>

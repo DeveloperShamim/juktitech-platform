@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 40" fill="none">
+  <text x="0" y="29" font-family="Arial,Helvetica,sans-serif" font-size="26" font-weight="700">
+    <tspan fill="#E2136E">b</tspan><tspan fill="#555">Kash</tspan>
+  </text>
+  <polygon fill="#E2136E" points="88,6 108,20 88,34 98,20"/>
+  <polygon fill="#C41260" points="98,6 115,14 98,22"/>
+  <polygon fill="#F0247E" points="108,14 125,20 108,26"/>
+</svg>
