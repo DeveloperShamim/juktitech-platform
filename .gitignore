@@ -37,3 +37,6 @@ preview-*.html
 render-*.php
 npm-debug.log
 yarn-error.log
+
+# Composer binary (install Composer separately)
+composer.phar
