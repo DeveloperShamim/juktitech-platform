@@ -51,41 +51,60 @@
                     <span class="badge bg-soft-orange text-orange mb-2 px-3 py-2 rounded-pill">প্রিমিয়াম ওয়েবসাইট</span>
                     <h1 class="fw-bold mb-3 text-dark">{{ $product->name }}</h1>
 
+                    @php
+                        // WhatsApp: the site phone from settings, as 8801XXXXXXXXX
+                        $waDigits = preg_replace('/\D/', '', (string) ($gs->phone ?? ''));
+                        if (str_starts_with($waDigits, '01')) { $waDigits = '88' . $waDigits; }
+                        $waNumber = strlen($waDigits) >= 12 ? $waDigits : '8801775075543';
+                        $priceText = '৳' . number_format((float) $product->price, 0);
+                        $waText = rawurlencode("আসসালামু আলাইকুম Jukti Tech! আমি \"{$product->name}\" ({$priceText}) কিনতে চাই।\n" . url()->current());
+                        $waUrl = "https://wa.me/{$waNumber}?text={$waText}";
+                        $canBuyOnline = $product->is_digital && $product->google_drive_file_id;
+
+                        $userHasPurchased = false;
+                        $userDownloadUrl = null;
+                        if (Auth::check()) {
+                            $existingPo = \App\Models\ProductOrder::where('user_id', Auth::id())
+                                ->where('product_id', $product->id)
+                                ->where('status', 'paid')
+                                ->first();
+                            if ($existingPo) {
+                                $userHasPurchased = true;
+                                $userDownloadUrl = route('digital-product.download', $existingPo->download_token);
+                            }
+                        }
+                    @endphp
+
                     <div class="price-box mb-4 d-flex align-items-center gap-3">
-                        <h2 class="fw-bold mb-0 text-orange product-price">৳ {{ $product->price }}</h2>
+                        <h2 class="fw-bold mb-0 text-orange product-price">{{ $priceText }}</h2>
                         @if($product->previous_price)
-                            <del class="text-muted fs-4">৳ {{ $product->previous_price }}</del>
+                            <del class="text-muted fs-4">৳{{ number_format((float) $product->previous_price, 0) }}</del>
+                        @endif
+                        @if($canBuyOnline)
+                            <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2">সোর্স কোড · এককালীন</span>
                         @endif
                     </div>
 
                     <p class="text-muted mb-4 fs-5 leading-relaxed">{{ $product->description }}</p>
 
-                    <div class="d-flex flex-wrap gap-3 mb-3">
-                        @if($product->demo_link)
-                        <a href="#live-test-drive" class="btn btn-dark btn-lg px-5 rounded-3 shadow-sm transition">
-                            <i class="fas fa-eye me-2"></i> লাইভ টেস্ট ড্রাইভ
-                        </a>
-                        @endif
-
-                        @php
-                            $userHasPurchased = false;
-                            $userDownloadUrl = null;
-                            if(Auth::check()) {
-                                $existingPo = \App\Models\ProductOrder::where('user_id', Auth::id())
-                                    ->where('product_id', $product->id)
-                                    ->where('status', 'paid')
-                                    ->first();
-                                if($existingPo) {
-                                    $userHasPurchased = true;
-                                    $userDownloadUrl = route('digital-product.download', $existingPo->download_token);
-                                }
-                            }
-                        @endphp
-
+                    <div class="d-flex flex-wrap gap-3 mb-3" id="buy-actions">
                         @if($userHasPurchased)
                             <a href="{{ $userDownloadUrl }}" class="btn btn-success btn-lg px-5 rounded-3 shadow transition">
-                                <i class="fas fa-cloud-arrow-down me-2"></i> থিম ফাইল ডাউনলোড করুন
+                                <i class="fas fa-cloud-arrow-down me-2"></i> ফাইল ডাউনলোড করুন
                             </a>
+                        @elseif($canBuyOnline)
+                            @auth
+                                <button type="button"
+                                        class="btn btn-orange btn-lg px-5 rounded-3 shadow transition js-theme-buy"
+                                        data-checkout-url="{{ route('digital-product.checkout.submit', $product) }}"
+                                        data-product-name="{{ $product->name }} — {{ $priceText }}">
+                                    <i class="fas fa-bolt me-2"></i> এখনই কিনুন {{ $priceText }}
+                                </button>
+                            @else
+                                <a href="{{ route('digital-product.checkout', $product) }}" class="btn btn-orange btn-lg px-5 rounded-3 shadow transition">
+                                    <i class="fas fa-bolt me-2"></i> এখনই কিনুন {{ $priceText }}
+                                </a>
+                            @endauth
                         @else
                             <button type="button"
                                     class="btn btn-orange btn-lg px-5 rounded-3 shadow transition js-open-theme-order"
@@ -95,7 +114,25 @@
                                 <i class="fas fa-shopping-cart me-2"></i> এখুনি অর্ডার করুন
                             </button>
                         @endif
+
+                        <a href="{{ $waUrl }}" target="_blank" rel="noopener" class="btn btn-lg px-4 rounded-3 shadow-sm transition btn-wa">
+                            <i class="fab fa-whatsapp me-2"></i> WhatsApp-এ কথা বলুন
+                        </a>
+
+                        @if($product->demo_link)
+                        <a href="#live-test-drive" class="btn btn-outline-dark btn-lg px-4 rounded-3 transition">
+                            <i class="fas fa-eye me-2"></i> লাইভ ডেমো
+                        </a>
+                        @endif
                     </div>
+
+                    @if($canBuyOnline && !$userHasPurchased)
+                        <ul class="buy-trust list-unstyled d-flex flex-wrap gap-3 mb-3 small text-muted">
+                            <li><i class="fas fa-lock text-success me-1"></i> bKash বা Nagad-এ পেমেন্ট</li>
+                            <li><i class="fas fa-cloud-arrow-down text-success me-1"></i> পেমেন্ট যাচাই হলেই ডাউনলোড লিংক</li>
+                            <li><i class="fas fa-certificate text-success me-1"></i> আপনার ডোমেইনের লাইসেন্স</li>
+                        </ul>
+                    @endif
 
                     <div class="mb-4 d-flex flex-wrap align-items-center gap-2">
                         @auth
@@ -921,5 +958,65 @@ document.addEventListener('DOMContentLoaded', function () {
 
 @auth
     @include('frontend.partials.theme-buy-modal')
+
+    {{-- Floating WhatsApp, and a buy bar on phones once the main buttons scroll away --}}
+    <a href="{{ $waUrl }}" target="_blank" rel="noopener" class="wa-float" aria-label="WhatsApp-এ কথা বলুন">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+    @if(!$userHasPurchased)
+    <div class="buy-bar" id="buyBar" aria-hidden="true">
+        <div class="buy-bar-price">
+            <strong>{{ $priceText }}</strong>
+            <span>{{ \Illuminate\Support\Str::limit($product->name, 28) }}</span>
+        </div>
+        <a href="{{ $waUrl }}" target="_blank" rel="noopener" class="buy-bar-wa" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+        @if($canBuyOnline)
+            @auth
+                <button type="button" class="buy-bar-btn js-theme-buy"
+                        data-checkout-url="{{ route('digital-product.checkout.submit', $product) }}"
+                        data-product-name="{{ $product->name }} — {{ $priceText }}">কিনুন</button>
+            @else
+                <a href="{{ route('digital-product.checkout', $product) }}" class="buy-bar-btn">কিনুন</a>
+            @endauth
+        @else
+            <button type="button" class="buy-bar-btn js-open-theme-order" data-tier-index="0"
+                    data-tier-title="{{ $tiers[0]['title'] ?? 'সোর্স কোড' }}" data-tier-price="{{ $product->price }}">অর্ডার</button>
+        @endif
+    </div>
+    @endif
+
+    <style>
+        .btn-wa { background: #25D366; color: #fff !important; border: 0; }
+        .btn-wa:hover { background: #1EBE5A; }
+        .buy-trust li { display: inline-flex; align-items: center; }
+        .wa-float { position: fixed; right: 18px; bottom: 22px; z-index: 1040; width: 56px; height: 56px; border-radius: 50%;
+            background: #25D366; color: #fff !important; display: grid; place-items: center; font-size: 28px; text-decoration: none;
+            box-shadow: 0 10px 24px -8px rgba(37, 211, 102, .7); transition: transform .2s; }
+        .wa-float:hover { transform: scale(1.06); }
+        .buy-bar { display: none; }
+        @media (max-width: 767.98px) {
+            .buy-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1045; display: flex; align-items: center; gap: 10px;
+                padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px)); background: #fff; border-top: 1px solid #eee;
+                box-shadow: 0 -8px 24px -12px rgba(0, 0, 0, .25); transform: translateY(110%); transition: transform .25s ease; }
+            .buy-bar.show { transform: none; }
+            .buy-bar-price { flex: 1; min-width: 0; line-height: 1.2; }
+            .buy-bar-price strong { display: block; font-size: 20px; color: #E8751B; }
+            .buy-bar-price span { display: block; font-size: 12px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .buy-bar-wa { width: 46px; height: 46px; border-radius: 12px; background: #25D366; color: #fff !important; display: grid; place-items: center; font-size: 22px; text-decoration: none; }
+            .buy-bar-btn { height: 46px; padding: 0 22px; border-radius: 12px; border: 0; background: #E8751B; color: #fff !important; font-weight: 700; display: inline-flex; align-items: center; text-decoration: none; }
+            .wa-float { bottom: 86px; }
+        }
+    </style>
+    <script>
+        (function () {
+            var bar = document.getElementById('buyBar'), actions = document.getElementById('buy-actions');
+            if (!bar || !actions || !('IntersectionObserver' in window)) return;
+            new IntersectionObserver(function (entries) {
+                var hidden = !entries[0].isIntersecting && entries[0].boundingClientRect.top < 0;
+                bar.classList.toggle('show', hidden);
+                bar.setAttribute('aria-hidden', hidden ? 'false' : 'true');
+            }).observe(actions);
+        })();
+    </script>
 @endauth
 @endsection

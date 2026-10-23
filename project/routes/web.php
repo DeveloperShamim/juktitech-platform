@@ -994,8 +994,8 @@ Route::prefix('user')->middleware('auth')->group(function() {
     Route::get('/logout', [\App\Http\Controllers\User\ClientController::class, 'logout'])->name('user.logout');
 });
 
-Route::get('/theme/{product:slug}/buy', [\App\Http\Controllers\DigitalProductPurchaseController::class, 'checkoutForm'])->name('digital-product.checkout');
-Route::post('/theme/{product:slug}/buy', [\App\Http\Controllers\DigitalProductPurchaseController::class, 'checkout'])->name('digital-product.checkout.submit');
+Route::get('/theme/{product:slug}/buy', [\App\Http\Controllers\DigitalProductPurchaseController::class, 'checkoutForm'])->middleware('auth')->name('digital-product.checkout');
+Route::post('/theme/{product:slug}/buy', [\App\Http\Controllers\DigitalProductPurchaseController::class, 'checkout'])->middleware('auth')->name('digital-product.checkout.submit');
 Route::match(['get', 'post'], '/digital-product/payment/success', [\App\Http\Controllers\DigitalProductPurchaseController::class, 'paymentSuccess'])->name('digital-product.payment.success');
 Route::get('/digital-product/payment/cancel/{product:slug}', [\App\Http\Controllers\DigitalProductPurchaseController::class, 'paymentCancel'])->name('digital-product.payment.cancel');
 Route::post('/digital-product/payment/webhook', [\App\Http\Controllers\DigitalProductPurchaseController::class, 'paymentWebhook'])->name('digital-product.payment.webhook');
