@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vantor eCommerce Pro — রেডি Laravel ই-কমার্স ওয়েবসাইট | Jukti Tech</title>
 <meta name="description" content="কুরিয়ার বুকিং, ফেক অর্ডার ধরা, POS, লাভের হিসাব আর সার্ভার-সাইড ট্র্যাকিংসহ রেডি অনলাইন শপ। সম্পূর্ণ সোর্স কোড {{ $priceBn }}, এককালীন।">
-<link rel="canonical" href="{{ url('/vantor') }}">
+<link rel="canonical" href="{{ url('/') }}">
 <meta property="og:type" content="product">
 <meta property="og:title" content="Vantor eCommerce Pro — সম্পূর্ণ সোর্স কোড {{ $priceBn }}">
 <meta property="og:description" content="বাংলাদেশের অনলাইন শপের জন্য বানানো রেডি Laravel ই-কমার্স ওয়েবসাইট।">
 <meta property="og:image" content="{{ $assetBase }}/shots/store-home.webp">
-<meta property="og:url" content="{{ url('/vantor') }}">
+<meta property="og:url" content="{{ url('/') }}">
 @if(!empty($gs->favicon))<link rel="icon" href="{{ asset_image('assets/images/'.$gs->favicon) }}">@endif
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -431,6 +431,8 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
       <a href="#setup">কীভাবে পাবেন</a>
       <a href="#price">দাম</a>
       <a href="#faq">প্রশ্নোত্তর</a>
+      <a href="{{ route('frontend.themes') }}">অন্যান্য প্রোডাক্ট</a>
+      <a href="{{ route('login') }}">লগইন</a>
     </nav>
     <a class="btn sm" href="https://vantor.juktitech.com/" target="_blank" rel="noopener">লাইভ ডেমো <span class="arr">→</span></a>
   </div>
@@ -771,7 +773,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
 
 <footer>
   <div class="wrap">
-    <span>Vantor eCommerce Pro · Jukti Tech</span>
+    <span>Vantor eCommerce Pro · Jukti Tech · <a href="{{ route('frontend.themes') }}">অন্যান্য প্রোডাক্ট</a> · <a href="{{ route('login') }}">লগইন</a></span>
     <span>Laravel ১২ · PHP ৮.৩</span>
   </div>
 </footer>

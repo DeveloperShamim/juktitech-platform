@@ -680,34 +680,9 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => ['auth:admi
 });
 
 // ফ্রন্টএন্ড ডিটেইলস পেজ রাউট (স্লাগ সহ)
-// Vantor eCommerce Pro sales page. "Buy" goes to the digital checkout of the
-// vantor-ecommerce-pro product once it is set up as a digital product, otherwise to WhatsApp.
-Route::get('/vantor', function () {
-    $gs = \App\Models\GeneralSettings::first();
-    $product = \App\Models\Product::where('slug', 'vantor-ecommerce-pro')->where('status', 1)->first();
-    $price = (float) ($product->price ?? 3999);
-    $toBn = fn (string $s) => strtr($s, ['0' => '০', '1' => '১', '2' => '২', '3' => '৩', '4' => '৪', '5' => '৫', '6' => '৬', '7' => '৭', '8' => '৮', '9' => '৯']);
+// The Vantor eCommerce Pro sales page is the homepage; the old homepage lives at /home.
+Route::get('/vantor', fn () => redirect()->route('frontend.index', [], 301))->name('vantor.landing');
 
-    $digits = preg_replace('/\D/', '', (string) ($gs->phone ?? ''));
-    if (str_starts_with($digits, '01')) { $digits = '88' . $digits; }
-    $waNumber = strlen($digits) >= 12 ? $digits : '8801775075543';
-    $local = substr($waNumber, 2);
-    $waBase = 'https://wa.me/' . $waNumber;
-    $priceBn = '৳' . $toBn(number_format($price, 0));
-
-    $canBuy = $product && $product->is_digital && $product->google_drive_file_id;
-    $buyUrl = $canBuy
-        ? route('digital-product.checkout', $product)
-        : $waBase . '?text=' . rawurlencode("আসসালামু আলাইকুম Jukti Tech! আমি Vantor eCommerce Pro সোর্স কোড কিনতে চাই।");
-
-    return view('frontend.vantor', [
-        'buyUrl'    => $buyUrl,
-        'waBase'    => $waBase,
-        'waDisplay' => $toBn(substr($local, 0, 5) . '-' . substr($local, 5)),
-        'priceBn'   => $priceBn,
-        'assetBase' => asset('assets/vantor'),
-    ]);
-})->name('vantor.landing');
 
 Route::get('/theme/{slug}', [App\Http\Controllers\Front\FrontendController::class, 'productDetails'])->name('frontend.product.details');
 Route::post('/theme/order', [\App\Http\Controllers\Front\ThemeOrderController::class, 'store'])->name('frontend.theme.order');
@@ -1032,7 +1007,8 @@ Route::get('/digital-download/{token}/success', [\App\Http\Controllers\DigitalPr
 Route::get('/digital-download/{token}', [\App\Http\Controllers\DigitalProductPurchaseController::class, 'downloadPage'])->name('digital-product.download.page');
 Route::get('/digital-download/{token}/file', [\App\Http\Controllers\DigitalProductPurchaseController::class, 'download'])->name('digital-product.download');
 
-Route::get('/','Front\FrontendController@index')->name('frontend.index');
+Route::get('/', \App\Http\Controllers\Front\VantorLandingController::class)->name('frontend.index');
+Route::get('/home','Front\FrontendController@index')->name('frontend.home');
 // ২. আপনার থিম সিস্টেমের রাউট (এখানে বসান)
 Route::get('/themes', function () {
     return view('frontend.themes');
