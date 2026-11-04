@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="csrf-token" content="{{ csrf_token() }}" />
+  <title>@yield('title', 'Admin') &mdash; {{ site_name() }} Admin</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" href="{{ favicon_url() }}" />
+  @php
+    // Same brand colours as the storefront (Settings > theme), spread into a full 50-900 scale for the admin.
+    $theme = generate_3_color_matching_theme();
+    $mix = function (string $a, string $b, float $t): string {
+        [$a, $b] = [ltrim($a, '#'), ltrim($b, '#')];
+        $c = fn ($h, $i) => hexdec(substr($h, $i, 2));
+        return sprintf('#%02X%02X%02X', ...array_map(fn ($i) => (int) round($c($a, $i) + ($c($b, $i) - $c($a, $i)) * $t), [0, 2, 4]));
+    };
+    $p = $theme['primary']; $d = $theme['dark'];
+    $scale = [
+        50 => $mix($p, '#FFFFFF', .92), 100 => $mix($p, '#FFFFFF', .84), 200 => $mix($p, '#FFFFFF', .68), 300 => $mix($p, '#FFFFFF', .46),
+        400 => $mix($p, '#FFFFFF', .22), 500 => $mix($p, '#FFFFFF', .08), 600 => $p, 700 => $theme['primary_hover'],
+        800 => $mix($p, $d, .6), 900 => $d,
+    ];
+  @endphp
+  <style>
+    :root {
+      --brand: {{ $p }}; --primary: {{ $p }}; --brand-primary: {{ $p }};
+      --brand-700: {{ $theme['primary_hover'] }}; --brand-hover: {{ $theme['primary_hover'] }};
+      --brand-soft: {{ $theme['primary_soft_bg'] }}; --brand-border: {{ $theme['primary_border'] }}; --brand-surface: {{ $theme['surface'] }}; --brand-ring: {{ $scale[300] }};
+      --ink: {{ $d }}; --brand-dark: {{ $d }};
+      {{-- Theme colours for the compiled Tailwind build (tailwind.admin.config.js): brand/teal scale, warm slate darks --}}
+      {!! tw_css_vars(collect($scale)->mapWithKeys(fn ($hex, $k) => ["brand-$k" => $hex])->all() + [
+        'primary' => $p, 'ink' => $d,
+        'slate-800' => $mix($d, '#FFFFFF', .12), 'slate-900' => $d, 'slate-950' => $mix($d, '#000000', .3),
+      ]) !!}
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ asset('theme/css/admin.css') }}?v={{ @filemtime(public_path('theme/css/admin.css')) ?: '1' }}" />
+  <style>
+    body{font-family:'Plus Jakarta Sans','Hind Siliguri',sans-serif}
+    /* Prevent mobile auto-zoom on input focus (iOS Safari/Chrome zooms in if font-size < 16px) */
+    @media screen and (max-width: 768px) {
+      input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+      select,
+      textarea {
+        font-size: 16px !important;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="{{ asset('theme/css/tw-admin.css') }}?v={{ @filemtime(public_path('theme/css/tw-admin.css')) ?: '1' }}" />
+</head>
+<body class="admin-body text-gray-800 antialiased{{ testing_mode() ? ' testing-mode' : '' }}">
+  @if(testing_mode())
+    <div class="bg-amber-50 border-b border-amber-200 text-amber-900 text-sm px-4 py-2 text-center font-medium">
+      Testing mode is on &mdash; Save, Delete, and other write actions are disabled.
+    </div>
+  @endif
+  <div class="admin-shell min-h-screen min-h-[100dvh] px-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-4 lg:px-5 lg:pb-6">
+    @include('admin.partials.topbar')
+
+    <div class="flex items-start gap-4 xl:gap-5 mt-3 sm:mt-4">
+      @include('admin.partials.sidebar')
+
+      <div class="admin-main flex-1 flex flex-col min-w-0 w-full">
+        @include('admin.partials.page-tabs')
+
+        {{-- Page heading: title, optional subtitle and actions (sections "subtitle" and "page-actions") --}}
+        <div class="page-head flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 px-0.5 pb-3 sm:pb-4">
+          <div class="min-w-0">
+            <h1 class="text-xl sm:text-[22px] leading-tight font-semibold tracking-tight text-gray-900 truncate">@yield('title', 'Dashboard')</h1>
+            @hasSection('subtitle')
+              <p class="mt-0.5 text-[13px] text-gray-500">@yield('subtitle')</p>
+            @endif
+          </div>
+          @hasSection('page-actions')
+            <div class="flex items-center gap-2 flex-wrap shrink-0">@yield('page-actions')</div>
+          @endif
+        </div>
+
+        @if(session('status'))
+          <div class="pb-3">
+            <div class="flex items-center gap-2.5 bg-white text-emerald-800 text-sm font-semibold px-3.5 py-2.5 rounded-xl shadow-panel"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-700"><svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span>{{ session('status') }}</div>
+          </div>
+        @endif
+        @if(session('error'))
+          <div class="pb-3">
+            <div class="flex items-center gap-2.5 bg-white text-red-700 text-sm font-semibold px-3.5 py-2.5 rounded-xl shadow-panel"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-red-100 text-red-600 font-black text-xs">!</span>{{ session('error') }}</div>
+          </div>
+        @endif
+        @if($errors->any())
+          <div class="pb-3">
+            <div class="bg-white text-red-700 text-sm px-3.5 py-2.5 rounded-xl shadow-panel">
+              <ul class="list-disc list-inside">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
+            </div>
+          </div>
+        @endif
+
+        <main class="flex-1">
+          @yield('content')
+        </main>
+      </div>
+    </div>
+  </div>
+  <div id="backdrop" class="fixed inset-0 bg-ink/50 backdrop-blur-[2px] z-40 hidden lg:hidden" aria-hidden="true"></div>
+  <script src="{{ asset('theme/js/admin-shell.js') }}?v={{ @filemtime(public_path('theme/js/admin-shell.js')) ?: '1' }}"></script>
+  @php $alertUser = auth()->user(); @endphp
+  @if(\App\Support\StaffAccess::allows($alertUser, 'orders'))
+    {{-- New-order popup: polls the order feed; see public/theme/js/order-alerts.js --}}
+    <div id="orderAlertsConfig" hidden
+         data-feed="{{ route('admin.orders.feed') }}"
+         data-review-url="{{ route('admin.orders.index', ['status' => 'pending_verification']) }}"
+         data-icon="{{ favicon_url() }}"></div>
+    <script src="{{ asset('theme/js/order-alerts.js') }}?v={{ @filemtime(public_path('theme/js/order-alerts.js')) ?: '1' }}" defer></script>
+  @endif
+  @if(testing_mode())
+  <script>
+    (function () {
+      var MSG = 'In testing mode, not clickable.';
+
+      function formMethod(form) {
+        var method = (form.getAttribute('method') || 'get').toUpperCase();
+        var spoof = form.querySelector('input[name="_method"]');
+        if (spoof && spoof.value) method = spoof.value.toUpperCase();
+        return method;
+      }
+
+      function isLogoutForm(form) {
+        var action = (form.getAttribute('action') || '').toLowerCase();
+        return action.indexOf('/admin/logout') !== -1;
+      }
+
+      function isMutatingForm(form) {
+        if (!(form instanceof HTMLFormElement)) return false;
+        if (isLogoutForm(form)) return false;
+        return formMethod(form) !== 'GET';
+      }
+
+      function markLockedControls() {
+        document.querySelectorAll('form').forEach(function (form) {
+          if (!isMutatingForm(form)) return;
+          form.querySelectorAll('button, input[type="submit"], input[type="button"]').forEach(function (el) {
+            el.classList.add('testing-locked');
+          });
+        });
+        document.querySelectorAll('button[form], input[type="submit"][form]').forEach(function (el) {
+          var form = document.getElementById(el.getAttribute('form'));
+          if (isMutatingForm(form)) el.classList.add('testing-locked');
+        });
+        var saveAll = document.getElementById('saveAllSettings');
+        if (saveAll) saveAll.classList.add('testing-locked');
+      }
+
+      document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!isMutatingForm(form)) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        alert(MSG);
+      }, true);
+
+      document.addEventListener('click', function (e) {
+        var locked = e.target.closest('.testing-locked, #saveAllSettings');
+        if (locked) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          alert(MSG);
+          return;
+        }
+
+        var btn = e.target.closest('button[form], input[type="submit"][form]');
+        if (!btn || !btn.getAttribute('form')) return;
+        var form = document.getElementById(btn.getAttribute('form'));
+        if (!isMutatingForm(form)) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        alert(MSG);
+      }, true);
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', markLockedControls);
+      } else {
+        markLockedControls();
+      }
+    })();
+  </script>
+  @endif
+  @stack('scripts')
+</body>
+</html>

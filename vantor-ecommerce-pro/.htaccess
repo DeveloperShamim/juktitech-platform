@@ -1,0 +1,9 @@
+# Vantor eCommerce Pro source code (sold on juktitech.com). This folder sits under
+# the site's web root, so block all web access to it.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

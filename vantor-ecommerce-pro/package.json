@@ -1,0 +1,15 @@
+{
+    "$schema": "https://www.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "npm run build:store && npm run build:admin",
+        "build:store": "tailwindcss -c tailwind.store.config.js -i resources/css/tailwind/input.css -o public/theme/css/tw-store.css --minify",
+        "build:admin": "tailwindcss -c tailwind.admin.config.js -i resources/css/tailwind/input.css -o public/theme/css/tw-admin.css --minify",
+        "watch:store": "tailwindcss -c tailwind.store.config.js -i resources/css/tailwind/input.css -o public/theme/css/tw-store.css --watch",
+        "watch:admin": "tailwindcss -c tailwind.admin.config.js -i resources/css/tailwind/input.css -o public/theme/css/tw-admin.css --watch"
+    },
+    "devDependencies": {
+        "tailwindcss": "3.4.17"
+    }
+}

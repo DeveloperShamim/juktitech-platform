@@ -1,0 +1,746 @@
+@extends('layouts.storefront')
+
+@section('content')
+  @php
+    $ctaDefault = setting('default_cta_text', 'Add to Cart');
+    $flashEndsAt = setting('flash_sale_ends_at');
+    $flashEndsIso = $flashEndsAt ? \Illuminate\Support\Carbon::parse($flashEndsAt)->toIso8601String() : null;
+    $mainHero = $heroBanners->first();
+    $hasHero = $heroBanners->isNotEmpty() || $heroSideBanners->isNotEmpty() || setting('hero_fallback_title') || setting('hero_fallback_badge');
+    $hero = $mainHero;
+    $heroTitle = $hero?->title ?: setting('hero_fallback_title');
+    $heroSubtitle = $hero?->subtitle ?: setting('hero_fallback_subtitle');
+    $heroBadge = $hero?->badge ?: setting('hero_fallback_badge');
+    $showHeroCta = (bool) ($heroTitle || $hero?->button_text);
+  @endphp
+
+  {{-- 1. HERO SHOWCASE --}}
+  @if($hasHero)
+    <section class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4 pb-2" data-reveal>
+      <div class="grid grid-cols-2 lg:grid-cols-10 gap-2.5 sm:gap-3.5 lg:gap-4">
+
+        {{-- Main Hero Slider --}}
+        @php
+          $sliderClasses = $heroSideBanners->isNotEmpty()
+            ? 'col-span-2 lg:col-span-7 lg:row-span-2'
+            : 'col-span-2 lg:col-span-10';
+        @endphp
+
+        <div class="{{ $sliderClasses }} relative rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group flex flex-col justify-center aspect-[15/8] w-full bg-transparent">
+          @if($heroBanners->count() > 1)
+            {{-- Carousel Slider --}}
+            <div id="homeHeroSlider" class="relative w-full h-full aspect-[15/8] overflow-hidden select-none">
+              @foreach($heroBanners as $i => $slide)
+                <div data-hero-slide class="absolute inset-0 transition-opacity duration-500 ease-in-out {{ $i === 0 ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none' }}">
+                  <a href="{{ $slide->linkHref() }}" class="block w-full h-full relative" aria-label="{{ $slide->title ?: 'Banner Slide' }}">
+                    @if($slide->image)
+                      <img src="{{ $slide->imageUrl() }}" alt="{{ $slide->title }}" class="w-full h-full object-cover object-center" loading="{{ $i === 0 ? 'eager' : 'lazy' }}">
+                    @else
+                      <div class="w-full h-full bg-gradient-to-tr from-stone-950 via-neutral-900 to-brand-600 flex items-center py-5 px-5 sm:py-12 sm:px-20 text-white">
+                        <div class="max-w-md">
+                          @if($slide->badge)<span class="px-3 py-1 rounded-full text-xs font-bold uppercase bg-brand-500 text-white inline-block mb-2">{{ $slide->badge }}</span>@endif
+                          @if($slide->title)<h2 class="text-xl sm:text-4xl font-extrabold leading-tight">{{ $slide->title }}</h2>@endif
+                          @if($slide->subtitle)<p class="max-[389px]:hidden text-[11px] sm:text-sm text-white/80 mt-1.5 sm:mt-2 line-clamp-2">{{ $slide->subtitle }}</p>@endif
+                          @if($slide->button_text)<span class="inline-block mt-3 sm:mt-4 px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl bg-brand-600 text-white text-xs sm:text-sm font-bold">{{ $slide->button_text }}</span>@endif
+                        </div>
+                      </div>
+                    @endif
+                  </a>
+                </div>
+              @endforeach
+
+              {{-- Chevron Controls --}}
+              <button type="button" data-hero-arrow-prev class="max-sm:hidden absolute left-2.5 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/90 hover:bg-white text-neutral-800 shadow-md flex items-center justify-center transition-all opacity-80 hover:opacity-100 hover:scale-105 active:scale-95 focus:outline-none" aria-label="Previous Slide">
+                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m15 18-6-6 6-6"/></svg>
+              </button>
+
+              <button type="button" data-hero-arrow-next class="max-sm:hidden absolute right-2.5 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/90 hover:bg-white text-neutral-800 shadow-md flex items-center justify-center transition-all opacity-80 hover:opacity-100 hover:scale-105 active:scale-95 focus:outline-none" aria-label="Next Slide">
+                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m9 18 6-6-6-6"/></svg>
+              </button>
+
+              {{-- Indicator Dots --}}
+              {{-- Phones: dots sit bottom-right so they never cover the slide button --}}
+              <div class="absolute bottom-2.5 right-3 sm:bottom-4 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2 bg-black/25 backdrop-blur-[2px] px-2 py-1.5 rounded-full">
+                @foreach($heroBanners as $di => $dot)
+                  <button type="button" data-hero-dot="{{ $di }}" class="hero-slider-dot rounded-full transition-all duration-300 {{ $di === 0 ? 'w-6 sm:w-8 h-1.5 sm:h-2 bg-white' : 'w-1.5 sm:w-2 h-1.5 sm:h-2 bg-white/50 hover:bg-white/80' }}" aria-label="Slide {{ $di + 1 }}"></button>
+                @endforeach
+              </div>
+            </div>
+          @elseif($mainHero)
+            <div class="relative w-full h-full aspect-[15/8] overflow-hidden">
+              <a href="{{ $mainHero->linkHref() }}" class="block w-full h-full relative" aria-label="{{ $mainHero->title ?: 'Banner' }}">
+                @if($mainHero->image)
+                  <img src="{{ $mainHero->imageUrl() }}" alt="{{ $mainHero->title }}" class="w-full h-full object-cover object-center">
+                @else
+                  <div class="w-full h-full bg-gradient-to-tr from-stone-950 via-neutral-900 to-brand-600 flex items-center py-5 px-5 sm:py-12 sm:px-20 text-white">
+                    <div class="max-w-md">
+                      @if($heroBadge)<span class="px-3 py-1 rounded-full text-xs font-bold uppercase bg-brand-500 text-white inline-block mb-2">{{ $heroBadge }}</span>@endif
+                      @if($heroTitle)<h2 class="text-xl sm:text-4xl font-extrabold leading-tight">{{ $heroTitle }}</h2>@endif
+                      @if($heroSubtitle)<p class="max-[389px]:hidden text-[11px] sm:text-sm text-white/80 mt-1.5 sm:mt-2 line-clamp-2">{{ $heroSubtitle }}</p>@endif
+                      @if($showHeroCta)<span class="inline-block mt-3 sm:mt-4 px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl bg-brand-600 text-white text-xs sm:text-sm font-bold">{{ $mainHero->button_text ?: $ctaDefault }}</span>@endif
+                    </div>
+                  </div>
+                @endif
+              </a>
+            </div>
+          @else
+            <div class="relative w-full h-full aspect-[15/8] overflow-hidden bg-gradient-to-tr from-stone-950 via-neutral-900 to-brand-600 flex items-center py-5 px-5 sm:py-12 sm:px-20 text-white">
+              <div class="max-w-md">
+                @if($heroBadge)<span class="px-3 py-1 rounded-full text-xs font-bold uppercase bg-brand-500 text-white inline-block mb-2">{{ $heroBadge }}</span>@endif
+                <h2 class="text-xl sm:text-4xl font-extrabold leading-tight">{{ $heroTitle ?: site_name() }}</h2>
+                @if($heroSubtitle)<p class="max-[389px]:hidden text-[11px] sm:text-sm text-white/80 mt-1.5 sm:mt-2 line-clamp-2">{{ $heroSubtitle }}</p>@endif
+                <a href="{{ route('shop') }}" class="inline-block mt-3 sm:mt-4 px-4 sm:px-5 py-1.5 sm:py-2 bg-brand-600 text-white text-xs sm:text-sm font-bold rounded-xl">{{ $ctaDefault }}</a>
+              </div>
+            </div>
+          @endif
+        </div>
+
+        {{-- Side Promo Tiles --}}
+        @foreach($heroSideBanners->take(2) as $sideCard)
+          <a href="{{ $sideCard->linkHref() }}" class="col-span-1 lg:col-span-3 relative flex rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 group hover:-translate-y-0.5 bg-transparent aspect-[868/476] lg:aspect-auto lg:h-full min-h-0" aria-label="{{ $sideCard->title ?: 'Promo Card' }}">
+            @if($sideCard->image)
+              <img src="{{ $sideCard->imageUrl() }}" alt="{{ $sideCard->title }}" class="w-full h-full object-cover object-center group-hover:scale-[1.02] transition-transform duration-500" loading="lazy">
+            @else
+              <div class="w-full h-full bg-gradient-to-br from-neutral-800 to-stone-900 p-4 sm:p-6 text-white flex flex-col justify-between">
+                <div>
+                  @if($sideCard->badge)<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-brand-500 text-white uppercase">{{ $sideCard->badge }}</span>@endif
+                  <h3 class="font-extrabold text-sm sm:text-base mt-2 line-clamp-2">{{ $sideCard->title }}</h3>
+                </div>
+                @if($sideCard->button_text)<span class="hidden sm:inline-flex text-xs font-semibold text-brand-400 mt-2 items-center gap-1">{{ $sideCard->button_text }} &rarr;</span>@endif
+              </div>
+            @endif
+          </a>
+        @endforeach
+
+      </div>
+    </section>
+  @endif
+
+  {{-- 2. TRUST STRIP (Admin → Storefront → Trust Strip): 4 across on desktop, 2 x 2 on tablets and phones --}}
+  @if(isset($features) && $features->isNotEmpty())
+    @php $featureCount = $features->count(); @endphp
+    <section class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 mt-3 sm:mt-4" data-reveal>
+      <div class="grid grid-cols-2 lg:grid-cols-{{ min(4, $featureCount) }} overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200/70 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)]">
+        @foreach($features as $index => $feature)
+          @php
+            // Thin dividers: between the 2 columns and rows on phones/tablets, between columns on desktop.
+            $lines = [];
+            if ($index % 2 === 0 && $index < $featureCount - 1) $lines[] = 'border-r';
+            if ($index < $featureCount - ($featureCount % 2 === 0 ? 2 : 1)) $lines[] = 'border-b';
+            $lines[] = 'lg:border-r-0 lg:border-b-0';
+            if ($index % 4 !== 0) $lines[] = 'lg:border-l';
+          @endphp
+          <div class="group flex items-center sm:items-start gap-2.5 sm:gap-3.5 px-3 py-3 sm:px-5 sm:py-5 border-stone-100 {{ implode(' ', $lines) }} min-w-0">
+            <div class="grid h-8 w-8 sm:h-11 sm:w-11 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-600 ring-1 ring-brand-100 transition-transform duration-300 group-hover:scale-110 group-hover:bg-brand-600 group-hover:text-white">
+              {!! $feature->renderIconHtml('w-4 h-4 sm:w-5 sm:h-5', '') !!}
+            </div>
+            <div class="min-w-0">
+              <h4 class="text-xs sm:text-[15px] font-bold text-ink leading-tight">{{ $feature->title }}</h4>
+              @if($feature->subtitle)
+                <p class="hidden sm:block mt-1 text-xs text-stone-500 leading-snug line-clamp-2">{{ preg_replace('/(\d)-(\d)/u', "\$1\u{2011}\$2", $feature->subtitle) }}</p>
+              @endif
+            </div>
+          </div>
+        @endforeach
+      </div>
+    </section>
+  @endif
+
+  <main class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+
+    {{-- 3. SHOP BY CATEGORY --}}
+    @if($categories->isNotEmpty())
+      <section class="mt-8 sm:mt-12" data-reveal>
+        {{-- Centred heading; arrows sit on the right --}}
+        <div class="relative flex items-center justify-center mb-4 sm:mb-6" data-centered-heading>
+          <div class="text-center">
+            <h2 class="text-base sm:text-xl font-medium text-stone-900 leading-tight">
+              {{ setting('home_categories_title', 'Featured Categories') }}
+            </h2>
+          </div>
+          <div class="absolute right-0 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1.5 sm:gap-2">
+            <button type="button" id="catPrev" class="h-7 w-7 sm:h-8 sm:w-8 rounded-full border border-stone-200 bg-white hover:bg-brand-500 hover:text-white hover:border-brand-500 text-stone-600 transition-all shadow-2xs flex items-center justify-center focus:outline-none cursor-pointer" aria-label="Previous Category">
+              <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button type="button" id="catNext" class="h-7 w-7 sm:h-8 sm:w-8 rounded-full border border-stone-200 bg-white hover:bg-brand-500 hover:text-white hover:border-brand-500 text-stone-600 transition-all shadow-2xs flex items-center justify-center focus:outline-none cursor-pointer" aria-label="Next Category">
+              <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="relative group/carousel">
+          <div class="swiper categoriesSwiper !py-2 !px-0.5 -mx-0.5">
+            <div class="swiper-wrapper">
+              @foreach($categories as $cat)
+                <div class="swiper-slide">
+                  <a href="{{ route('shop.category', $cat) }}" class="group block rounded-xl sm:rounded-2xl border border-stone-200/90 bg-white hover:border-brand-300/60 p-2 sm:p-3.5 text-center transition-all duration-300 shadow-2xs hover:shadow-md hover:-translate-y-1">
+                    <div class="relative w-full aspect-square rounded-lg sm:rounded-xl overflow-hidden mb-1.5 sm:mb-2.5 bg-stone-100/80 grid place-items-center">
+                      @if($cat->image)
+                        <img src="{{ $cat->imageUrl() }}" alt="{{ $cat->name }}" loading="lazy" decoding="async" class="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-108" />
+                      @else
+                        <div class="w-full h-full grid place-items-center bg-stone-100 text-stone-700 font-extrabold text-lg sm:text-2xl group-hover:scale-108 transition-transform">
+                          {{ mb_strtoupper(mb_substr($cat->name, 0, 1)) }}
+                        </div>
+                      @endif
+                    </div>
+                    <h3 class="font-bold text-[11px] sm:text-sm text-stone-800 group-hover:text-brand-600 transition-colors line-clamp-1 leading-tight sm:leading-snug">{{ $cat->name }}</h3>
+                    @if(isset($cat->products_count) && $cat->products_count > 0)
+                      <p class="text-[10px] sm:text-[11px] font-medium text-stone-400 mt-0.5">{{ $cat->products_count }} {{ Str::plural('Item', $cat->products_count) }}</p>
+                    @else
+                      <p class="text-[10px] sm:text-[11px] font-medium text-stone-400 mt-0.5">Explore</p>
+                    @endif
+                  </a>
+                </div>
+              @endforeach
+            </div>
+          </div>
+        </div>
+      </section>
+    @endif
+
+    {{-- 4. FLASH DEALS while a timed sale runs (Admin → Flash Sale "Ends at" in the future), otherwise OUR PICKS --}}
+    @if($flashActive)
+      <section class="mt-10 sm:mt-14" data-reveal data-home-flash>
+        <div class="flex items-end justify-between mb-4 sm:mb-6 gap-3 flex-wrap">
+          <div>
+            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+              @if($flashEndsIso)
+                <div data-countdown-end="{{ $flashEndsIso }}" class="flex items-center gap-1 font-mono font-bold text-stone-600 text-xs">
+                  <span class="text-stone-400 font-sans text-[11px] mr-0.5">Ends in:</span>
+                  <span class="bg-stone-900 text-white px-1.5 py-0.5 rounded font-mono font-black text-xs" data-d>00</span><span class="text-stone-500 font-bold text-[10px]">d</span> :
+                  <span class="bg-stone-900 text-white px-1.5 py-0.5 rounded font-mono font-black text-xs" data-h>00</span><span class="text-stone-500 font-bold text-[10px]">h</span> :
+                  <span class="bg-stone-900 text-white px-1.5 py-0.5 rounded font-mono font-black text-xs" data-m>00</span><span class="text-stone-500 font-bold text-[10px]">m</span> :
+                  <span class="bg-stone-900 text-white px-1.5 py-0.5 rounded font-mono font-black text-xs" data-s>00</span><span class="text-stone-500 font-bold text-[10px]">s</span>
+                </div>
+              @endif
+            </div>
+            <h2 class="text-base sm:text-xl font-medium text-stone-900 leading-tight">
+              {{ setting('home_hot_deal_title', 'Special Flash Discounts') }}
+            </h2>
+          </div>
+
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
+          @foreach($flashProducts->take(8) as $product)
+            {{-- Phones show the first 4; View all deals has the rest --}}
+            <div class="{{ $loop->index >= 4 ? 'max-sm:hidden' : '' }} grid min-w-0">
+              @include('storefront.partials.product-card', ['product' => $product, 'flashCard' => true])
+            </div>
+          @endforeach
+        </div>
+        @include('storefront.partials.see-all', ['href' => route('shop', ['flash' => 1]), 'label' => 'deals'])
+      </section>
+    @elseif($ourPicks->isNotEmpty())
+      <section class="mt-10 sm:mt-14" data-reveal data-our-picks>
+        <div class="text-center mb-4 sm:mb-6" data-centered-heading>
+          <h2 class="text-base sm:text-xl font-medium text-stone-900 leading-tight">{{ setting('home_picks_title', 'Top Selling Products') }}</h2>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
+          @foreach($ourPicks as $product)
+            {{-- Phones show the first 4 --}}
+            <div class="{{ $loop->index >= 4 ? 'max-sm:hidden' : '' }} grid min-w-0">
+              @include('storefront.partials.product-card', ['product' => $product])
+            </div>
+          @endforeach
+        </div>
+        @include('storefront.partials.see-all', ['href' => route('shop', ['featured' => 1]), 'label' => 'top selling'])
+      </section>
+    @endif
+
+    {{-- 5. CURATED PRODUCT SHOWCASE WITH INTERACTIVE SEGMENTED TABS (Solves product repetition) --}}
+    <section class="mt-12 sm:mt-16" data-reveal>
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
+        <div>
+          <h2 class="text-base sm:text-xl font-medium text-stone-900 leading-tight">
+            Curated Collection
+          </h2>
+        </div>
+
+        {{-- Segmented Tab Switcher --}}
+        <div class="w-full sm:w-auto flex sm:inline-flex p-1 rounded-xl bg-stone-100 border border-stone-200/70 text-xs font-bold" id="homeProductTabs" role="tablist">
+          <button type="button" data-home-tab="best-sellers" class="home-tab-btn active flex-1 sm:flex-initial text-center justify-center px-2.5 sm:px-3.5 py-2 sm:py-1.5 rounded-lg bg-white text-stone-900 shadow-2xs transition-all text-[11px] sm:text-xs">
+            Best Sellers
+          </button>
+          <button type="button" data-home-tab="new-arrivals" class="home-tab-btn flex-1 sm:flex-initial text-center justify-center px-2.5 sm:px-3.5 py-2 sm:py-1.5 rounded-lg text-stone-500 hover:text-stone-900 transition-all text-[11px] sm:text-xs">
+            New Arrivals
+          </button>
+        </div>
+      </div>
+
+      {{-- Tab Panes --}}
+      <div id="homeTabPanes">
+        {{-- Pane 1: Best Sellers --}}
+        <div id="homePane-best-sellers" class="home-tab-pane">
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
+            @foreach($bestSellers->take(8) as $product)
+              <div class="{{ $loop->index >= 6 ? 'max-sm:hidden' : '' }} grid min-w-0">
+                @include('storefront.partials.product-card', ['product' => $product])
+              </div>
+            @endforeach
+          </div>
+          @include('storefront.partials.see-all', ['href' => route('shop', ['best_seller' => 1]), 'label' => 'best sellers'])
+        </div>
+
+        {{-- Pane 2: New Arrivals --}}
+        <div id="homePane-new-arrivals" class="home-tab-pane hidden">
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
+            @foreach($newArrivals->take(8) as $product)
+              <div class="{{ $loop->index >= 6 ? 'max-sm:hidden' : '' }} grid min-w-0">
+                @include('storefront.partials.product-card', ['product' => $product])
+              </div>
+            @endforeach
+          </div>
+          @include('storefront.partials.see-all', ['href' => route('shop', ['new' => 1]), 'label' => 'new arrivals'])
+        </div>
+
+      </div>
+    </section>
+
+    {{-- 6. SHOP BY BRAND: logos only, each opens the brand's page (hidden while the shop has a single brand) --}}
+    @if(setting('show_featured_brands', '1') === '1' && isset($featuredBrands) && $featuredBrands->count() > 1)
+      <section class="mt-14 sm:mt-16" data-reveal>
+        <div class="flex items-end justify-between mb-3 sm:mb-4">
+          <div>
+            <h2 class="text-base sm:text-xl font-medium text-stone-900 leading-tight">
+              {{ setting('home_featured_brands_title', 'Official Brands') }}
+            </h2>
+          </div>
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <a href="{{ route('shop') }}" class="text-xs font-bold text-stone-600 hover:text-brand-600 mr-2 hidden sm:inline-block transition-colors">View All Brands &rarr;</a>
+            <button type="button" id="brandPrev" class="h-7 w-7 sm:h-8 sm:w-8 rounded-full border border-stone-200 bg-white hover:bg-brand-500 hover:text-white hover:border-brand-500 text-stone-600 transition-all shadow-2xs flex items-center justify-center focus:outline-none cursor-pointer" aria-label="Previous Brand">
+              <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button type="button" id="brandNext" class="h-7 w-7 sm:h-8 sm:w-8 rounded-full border border-stone-200 bg-white hover:bg-brand-500 hover:text-white hover:border-brand-500 text-stone-600 transition-all shadow-2xs flex items-center justify-center focus:outline-none cursor-pointer" aria-label="Next Brand">
+              <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="relative group/carousel">
+          <div class="swiper brandsSwiper !py-2 !px-0.5 -mx-0.5">
+            <div class="swiper-wrapper">
+              @foreach($featuredBrands as $b)
+                <div class="swiper-slide">
+                  <a href="{{ route('shop.brand', $b) }}" class="group flex flex-col items-center justify-center p-2 sm:p-4 rounded-xl sm:rounded-2xl border border-stone-200/90 bg-white hover:border-brand-300/60 transition-all duration-300 shadow-2xs hover:shadow-md hover:-translate-y-1 text-center h-full">
+                    <div class="h-10 sm:h-16 w-full flex items-center justify-center mb-1.5 sm:mb-2.5 p-1.5 sm:p-2 bg-stone-50 rounded-lg sm:rounded-xl border border-stone-150/80 group-hover:bg-brand-50/50 group-hover:border-brand-200/60 transition-all duration-300">
+                      <img src="{{ $b->logoUrl() }}" alt="{{ $b->name }}" loading="lazy" class="max-h-full max-w-full object-contain transition-transform duration-500 ease-out group-hover:scale-110" />
+                    </div>
+                    <span class="text-[11px] sm:text-sm font-bold text-stone-800 group-hover:text-brand-600 transition-colors truncate w-full">{{ $b->name }}</span>
+                    @if(isset($b->products_count) && $b->products_count > 0)
+                      <span class="text-[10px] sm:text-[11px] text-stone-400 group-hover:text-brand-500/80 font-medium mt-0.5 transition-colors">{{ $b->products_count }} {{ Str::plural('item', $b->products_count) }}</span>
+                    @else
+                      <span class="text-[10px] sm:text-[11px] text-stone-400 group-hover:text-brand-500/80 font-medium mt-0.5 transition-colors">Official Brand</span>
+                    @endif
+                  </a>
+                </div>
+              @endforeach
+            </div>
+          </div>
+        </div>
+      </section>
+    @endif
+
+    {{-- FEATURED CATEGORIES: the first 4 marked 'Featured on home' in Admin → Categories, one short row each --}}
+    @if(($featuredHomeCategories ?? collect())->isNotEmpty())
+      @foreach($featuredHomeCategories as $featuredCat)
+        @if($featuredCat->products->isNotEmpty())
+          <section class="mt-12 sm:mt-16" data-reveal>
+            <div class="flex items-end justify-between mb-4 sm:mb-6 gap-3">
+              <h2 class="text-base sm:text-xl font-medium text-stone-900 leading-tight">{{ $featuredCat->name }}</h2>
+            </div>
+
+            {{-- One row that slides by itself (pauses on touch or hover); swipe sideways too. 2 visible on phones, 4 from tablets up --}}
+            <div class="flex gap-2.5 sm:gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth scroll-px-3 sm:scroll-px-0 -mx-3 px-3 sm:mx-0 sm:px-0 pb-1" data-auto-row>
+              @foreach($featuredCat->products as $product)
+                <div class="w-[calc((100%-0.625rem)/2)] shrink-0 snap-start sm:w-[calc((100%-3rem)/4)] grid min-w-0">
+                  @include('storefront.partials.product-card', ['product' => $product])
+                </div>
+              @endforeach
+              {{-- Swiping to the end lands on See all --}}
+              @if($featuredCat->products->count() > 2)
+                <a href="{{ route('shop.category', $featuredCat) }}" class="w-[calc((100%-0.625rem)/2)] shrink-0 snap-start sm:w-[calc((100%-3rem)/4)] flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-stone-300 bg-stone-50/80 hover:border-brand-500/50 text-stone-800 hover:text-brand-600 transition-colors p-4 text-center" data-row-see-all>
+                  <span class="h-11 w-11 rounded-full bg-white border border-stone-200 flex items-center justify-center shadow-2xs">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                  </span>
+                  <span class="text-sm font-bold leading-snug">See all<br>{{ $featuredCat->name }}</span>
+                </a>
+              @endif
+            </div>
+
+            @include('storefront.partials.see-all', ['href' => route('shop.category', $featuredCat), 'label' => $featuredCat->name])
+          </section>
+        @endif
+      @endforeach
+    @endif
+
+    {{-- 8. VERIFIED CUSTOMER REVIEWS & SOCIAL PROOF --}}
+    @if($homeReviews->isNotEmpty())
+      <section class="mt-14 sm:mt-16 mb-12" data-reveal>
+        <div class="text-center max-w-xl mx-auto mb-6 sm:mb-10 px-4">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200/80 text-amber-900 text-xs font-bold mb-2 shadow-2xs">
+            <span class="text-amber-500 tracking-wider">★★★★★</span>
+            <span>Real Verified Buyers</span>
+          </div>
+          <h2 class="text-base sm:text-xl font-medium text-stone-900 leading-tight">
+            {{ setting('home_reviews_title', 'Customer Feedback') }}
+          </h2>
+        </div>
+
+        {{-- Review Cards: swipe row on phones, 2 columns on tablets, 3 on desktop --}}
+        @php $reviewCols = $homeReviews->count() % 3 === 0 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'; @endphp
+        <div class="flex md:grid md:grid-cols-2 {{ $reviewCols }} gap-3.5 sm:gap-5 overflow-x-auto md:overflow-visible snap-x snap-mandatory no-scrollbar pb-3 pt-1 -mx-3 px-3 sm:mx-0 sm:px-0">
+          @foreach($homeReviews as $review)
+            <div class="w-[85vw] max-w-[340px] sm:w-[360px] md:w-auto md:max-w-none shrink-0 md:shrink min-w-0 snap-center relative overflow-hidden rounded-2xl border border-stone-200/80 bg-white p-4 sm:p-6 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group">
+              <div>
+                <div class="flex items-center justify-between gap-2 mb-2.5">
+                  <div class="flex items-center gap-1 text-amber-400 text-sm">
+                    @php $rating = (int) ($review->rating ?: 5); @endphp
+                    @for($i = 1; $i <= 5; $i++)
+                      <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 {{ $i <= $rating ? 'text-amber-400 fill-amber-400' : 'text-stone-200 fill-stone-200' }}" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                      </svg>
+                    @endfor
+                    <span class="text-xs font-extrabold text-stone-800 ml-1">{{ $rating }}.0</span>
+                  </div>
+                  <span class="text-[10px] sm:text-[11px] font-medium text-stone-400">{{ $review->created_at?->diffForHumans() ?? 'Verified' }}</span>
+                </div>
+
+                <p class="text-stone-700 text-xs sm:text-sm leading-relaxed line-clamp-4">
+                  “{{ $review->body }}”
+                </p>
+                @if($review->product)
+                  <a href="{{ route('product.show', $review->product) }}" class="mt-2.5 inline-flex max-w-full items-center gap-1 text-[11px] font-medium text-stone-500 hover:text-brand-700">
+                    <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                    <span class="truncate">{{ $review->product->name }}</span>
+                  </a>
+                @endif
+              </div>
+
+              <div class="mt-4 pt-3 sm:pt-4 border-t border-stone-100 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                  @php
+                    $initials = collect(preg_split('/\s+/', trim((string) $review->author_name)))->filter()->take(2)->map(fn ($p) => mb_strtoupper(mb_substr($p, 0, 1)))->implode('');
+                  @endphp
+                  <div class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-stone-100 border border-stone-200 text-stone-800 font-extrabold text-[11px] sm:text-xs grid place-items-center shrink-0">
+                    {{ $initials ?: 'U' }}
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="font-bold text-xs sm:text-sm text-stone-900 truncate leading-tight">{{ $review->author_name }}</p>
+                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 whitespace-nowrap">
+                      <svg class="w-3 h-3 text-emerald-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                      Verified Buyer
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          @endforeach
+        </div>
+
+        {{-- Mobile Swipe Hint --}}
+        <div class="flex md:hidden items-center justify-center gap-1.5 mt-2.5 text-stone-400">
+          <span class="text-[10px] font-bold tracking-wider uppercase flex items-center gap-1 text-stone-400">
+            <span>Swipe for more reviews</span>
+            <svg class="w-3 h-3 text-stone-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+          </span>
+        </div>
+      </section>
+    @endif
+
+    {{-- 9. JUST FOR YOU: near the end (only vouchers follow), picked from what's in the cart and what hasn't been shown above --}}
+    @if(($justForYou ?? collect())->isNotEmpty())
+      <section class="mt-12 sm:mt-16 last:mb-12" data-reveal data-just-for-you>
+        <div class="flex items-end justify-between mb-4 sm:mb-6 gap-3">
+          <div>
+            <h2 class="text-base sm:text-xl font-medium text-stone-900 leading-tight">Just for you</h2>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
+          @foreach($justForYou as $product)
+            {{-- Phones show 8 --}}
+            <div class="grid min-w-0 {{ $loop->index >= 8 ? 'max-md:hidden' : '' }}">
+              @include('storefront.partials.product-card', ['product' => $product])
+            </div>
+          @endforeach
+        </div>
+        @include('storefront.partials.see-all', ['href' => route('shop'), 'label' => 'products'])
+      </section>
+    @endif
+
+    {{-- 10. EXCLUSIVE COUPONS & VOUCHERS: last, after Just for you --}}
+    @if($coupons->isNotEmpty())
+      <section class="mt-12 sm:mt-16 last:mb-12" data-reveal data-home-coupons>
+        <div class="flex items-end justify-between mb-4 pb-3">
+          <div>
+            <h2 class="text-base sm:text-xl font-medium text-stone-900 leading-tight">
+              Exclusive Vouchers &amp; Offers
+            </h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" id="couponPrev" class="h-8 w-8 rounded-full bg-white hover:bg-brand-500 hover:text-white border border-stone-200 hover:border-brand-500 text-stone-700 transition-all shadow-2xs flex items-center justify-center focus:outline-none cursor-pointer" aria-label="Previous Coupon">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button type="button" id="couponNext" class="h-8 w-8 rounded-full bg-white hover:bg-brand-500 hover:text-white border border-stone-200 hover:border-brand-500 text-stone-700 transition-all shadow-2xs flex items-center justify-center focus:outline-none cursor-pointer" aria-label="Next Coupon">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="swiper couponsSwiper !py-1 !px-0.5 -mx-0.5">
+          <div class="swiper-wrapper">
+            @foreach($coupons as $coupon)
+              <div class="swiper-slide">
+                <div class="relative overflow-hidden rounded-2xl bg-white border border-stone-200/90 p-4 sm:p-5 shadow-2xs hover:shadow-md hover:border-stone-900 transition-all duration-200 flex flex-col justify-between h-full group">
+                  
+                  {{-- Ticket Cutout Notches --}}
+                  <div class="absolute -left-2.5 bottom-11 w-5 h-5 bg-stone-50 border-r border-stone-200/90 rounded-full"></div>
+                  <div class="absolute -right-2.5 bottom-11 w-5 h-5 bg-stone-50 border-l border-stone-200/90 rounded-full"></div>
+
+                  <div>
+                    <div class="flex items-center justify-between gap-2 mb-2.5">
+                      <span class="inline-flex items-center gap-1.5 bg-stone-100 border border-dashed border-stone-300 text-stone-900 font-mono font-black text-xs px-2.5 py-1 rounded-lg tracking-wider uppercase">
+                        {{ $coupon->code }}
+                      </span>
+                      <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Active
+                      </span>
+                    </div>
+
+                    <div class="flex items-baseline gap-1.5 mt-2">
+                      <span class="text-2xl sm:text-3xl font-extrabold text-stone-900 tracking-tight leading-none">{{ $coupon->valueLabel() }}</span>
+                      <span class="text-[10px] sm:text-xs font-black uppercase text-stone-700 bg-stone-100 px-2 py-0.5 rounded-md leading-none">OFF</span>
+                    </div>
+
+                    <p class="text-xs text-stone-600 mt-2 line-clamp-1 font-medium leading-tight">
+                      @if($coupon->description)
+                        {{ $coupon->description }}
+                      @elseif($coupon->min_order_amount)
+                        Min. order {{ money($coupon->min_order_amount) }}
+                      @else
+                        Valid at checkout
+                      @endif
+                    </p>
+                  </div>
+
+                  <div class="mt-4 pt-3 border-t border-dashed border-stone-200 flex items-center justify-between gap-2">
+                    <span class="text-[11px] font-medium text-stone-400">At checkout</span>
+                    <button type="button" onclick="applyAndCopyCoupon('{{ $coupon->code }}')" class="inline-flex items-center gap-1.5 rounded-xl bg-stone-900 hover:bg-black text-white font-bold text-xs px-3.5 py-1.5 shadow-2xs transition-colors cursor-pointer">
+                      <span>Use Code</span>
+                      <span class="text-xs font-mono">&rarr;</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            @endforeach
+          </div>
+        </div>
+      </section>
+    @endif
+
+  </main>
+@endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ---------------- 1. Hero Carousel Slider ---------------- */
+  const homeHeroSlider = document.getElementById('homeHeroSlider');
+  if (homeHeroSlider) {
+    const slides = homeHeroSlider.querySelectorAll('[data-hero-slide]');
+    const dots = homeHeroSlider.querySelectorAll('[data-hero-dot]');
+    const prevBtn = homeHeroSlider.querySelector('[data-hero-arrow-prev]');
+    const nextBtn = homeHeroSlider.querySelector('[data-hero-arrow-next]');
+
+    if (slides.length > 1) {
+      let currentIndex = 0;
+      let slideTimer = null;
+      const totalSlides = slides.length;
+
+      function showSlide(index) {
+        currentIndex = (index + totalSlides) % totalSlides;
+        slides.forEach((slide, i) => {
+          if (i === currentIndex) {
+            slide.classList.remove('opacity-0', 'pointer-events-none', 'z-0');
+            slide.classList.add('opacity-100', 'pointer-events-auto', 'z-10');
+          } else {
+            slide.classList.remove('opacity-100', 'pointer-events-auto', 'z-10');
+            slide.classList.add('opacity-0', 'pointer-events-none', 'z-0');
+          }
+        });
+
+        dots.forEach((dot, i) => {
+          if (i === currentIndex) {
+            dot.className = 'hero-slider-dot rounded-full transition-all duration-300 w-6 sm:w-8 h-1.5 sm:h-2 bg-white';
+          } else {
+            dot.className = 'hero-slider-dot rounded-full transition-all duration-300 w-1.5 sm:w-2 h-1.5 sm:h-2 bg-white/50 hover:bg-white/80';
+          }
+        });
+      }
+
+      function nextSlide() { showSlide(currentIndex + 1); }
+      function prevSlide() { showSlide(currentIndex - 1); }
+
+      function startAutoPlay() {
+        stopAutoPlay();
+        slideTimer = setInterval(nextSlide, 4500);
+      }
+
+      function stopAutoPlay() {
+        if (slideTimer) {
+          clearInterval(slideTimer);
+          slideTimer = null;
+        }
+      }
+
+      if (nextBtn) nextBtn.addEventListener('click', (e) => { e.preventDefault(); nextSlide(); startAutoPlay(); });
+      if (prevBtn) prevBtn.addEventListener('click', (e) => { e.preventDefault(); prevSlide(); startAutoPlay(); });
+
+      dots.forEach((dot, idx) => {
+        dot.addEventListener('click', (e) => {
+          e.preventDefault();
+          showSlide(idx);
+          startAutoPlay();
+        });
+      });
+
+      homeHeroSlider.addEventListener('mouseenter', stopAutoPlay);
+      homeHeroSlider.addEventListener('mouseleave', startAutoPlay);
+
+      // Touch swipe support
+      let touchStartX = 0;
+      let touchEndX = 0;
+      homeHeroSlider.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        stopAutoPlay();
+      }, { passive: true });
+      homeHeroSlider.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        const diffX = touchStartX - touchEndX;
+        if (Math.abs(diffX) > 40) {
+          if (diffX > 0) nextSlide();
+          else prevSlide();
+        }
+        startAutoPlay();
+      }, { passive: true });
+
+      startAutoPlay();
+    }
+  }
+
+  /* ---------------- 2. Segmented Product Tabs ---------------- */
+  const tabBtns = document.querySelectorAll('#homeProductTabs .home-tab-btn');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', function () {
+      const targetKey = this.getAttribute('data-home-tab');
+
+      tabBtns.forEach(b => {
+        const isSelected = b === this;
+        b.classList.toggle('active', isSelected);
+        b.classList.toggle('bg-white', isSelected);
+        b.classList.toggle('text-stone-900', isSelected);
+        b.classList.toggle('shadow-2xs', isSelected);
+        b.classList.toggle('text-stone-500', !isSelected);
+      });
+
+      document.querySelectorAll('#homeTabPanes .home-tab-pane').forEach(pane => {
+        pane.classList.toggle('hidden', pane.id !== 'homePane-' + targetKey);
+      });
+    });
+  });
+
+  /* ---------------- 3. Categories Swiper ---------------- */
+  if (typeof Swiper !== 'undefined' && document.querySelector('.categoriesSwiper')) {
+    new Swiper('.categoriesSwiper', {
+      slidesPerView: 3.25,
+      centerInsufficientSlides: true,
+      spaceBetween: 8,
+      rewind: true,
+      speed: 600,
+      autoplay: {
+        delay: 2800,
+        disableOnInteraction: false,
+        pauseOnMouseEnter: true,
+      },
+      watchSlidesProgress: true,
+      navigation: {
+        nextEl: '#catNext',
+        prevEl: '#catPrev',
+      },
+      breakpoints: {
+        380: { slidesPerView: 3.4, spaceBetween: 8 },
+        480: { slidesPerView: 4.2, spaceBetween: 10 },
+        640: { slidesPerView: 5, spaceBetween: 12 },
+        768: { slidesPerView: 6, spaceBetween: 14 },
+        1024: { slidesPerView: 7, spaceBetween: 16 },
+      },
+    });
+  }
+
+  /* ---------------- 4. Brands Swiper ---------------- */
+  if (typeof Swiper !== 'undefined' && document.querySelector('.brandsSwiper')) {
+    new Swiper('.brandsSwiper', {
+      slidesPerView: 3.25,
+      spaceBetween: 8,
+      rewind: true,
+      speed: 600,
+      autoplay: {
+        delay: 3200,
+        disableOnInteraction: false,
+        pauseOnMouseEnter: true,
+      },
+      watchSlidesProgress: true,
+      navigation: {
+        nextEl: '#brandNext',
+        prevEl: '#brandPrev',
+      },
+      breakpoints: {
+        380: { slidesPerView: 3.4, spaceBetween: 8 },
+        480: { slidesPerView: 4.2, spaceBetween: 10 },
+        640: { slidesPerView: 5.2, spaceBetween: 12 },
+        768: { slidesPerView: 6, spaceBetween: 14 },
+        1024: { slidesPerView: 7, spaceBetween: 16 },
+      },
+    });
+  }
+
+  /* ---------------- 5. Coupons Swiper ---------------- */
+  if (typeof Swiper !== 'undefined' && document.querySelector('.couponsSwiper')) {
+    new Swiper('.couponsSwiper', {
+      slidesPerView: 1.2,
+      spaceBetween: 12,
+      loop: false,
+      watchSlidesProgress: true,
+      navigation: {
+        nextEl: '#couponNext',
+        prevEl: '#couponPrev',
+      },
+      breakpoints: {
+        640: { slidesPerView: 2, spaceBetween: 14 },
+        1024: { slidesPerView: 3, spaceBetween: 16 },
+      },
+    });
+  }
+
+});
+
+/* ---------------- Coupon 1-Tap Copy & Auto-Apply ---------------- */
+window.applyAndCopyCoupon = function(code) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).catch(function() {});
+  }
+  try {
+    sessionStorage.setItem('auto_apply_coupon', code);
+  } catch (e) {}
+  if (window.showToast) {
+    window.showToast('Coupon ' + code + ' copied! Applying at checkout...', 'success');
+  }
+  setTimeout(function() {
+    window.location.href = "{{ route('checkout.show') }}?coupon=" + encodeURIComponent(code);
+  }, 250);
+};
+</script>
+@endpush

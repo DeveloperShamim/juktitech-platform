@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no, viewport-fit=cover" />
+  <meta name="csrf-token" content="{{ csrf_token() }}" />
+
+  @include('partials.seo')
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  @php
+    $theme = generate_3_color_matching_theme();
+  @endphp
+
+  <link rel="stylesheet" href="{{ asset('theme/vendor/swiper/swiper-bundle.min.css') }}" />
+
+  <style>
+    :root {
+      --brand-primary: {{ $theme['primary'] }};
+      --brand-hover: {{ $theme['primary_hover'] }};
+      --brand-soft-bg: {{ $theme['primary_soft_bg'] }};
+      --brand-border: {{ $theme['primary_border'] }};
+      --brand-dark: {{ $theme['dark'] }};
+      --brand-surface: {{ $theme['surface'] }};
+      {{-- Theme colours for the compiled Tailwind build (tailwind.store.config.js) --}}
+      {!! tw_css_vars([
+        'brand-50' => $theme['primary_soft_bg'], 'brand-100' => $theme['primary_border'], 'brand-200' => $theme['primary_border'],
+        'brand-300' => $theme['primary'], 'brand-400' => $theme['primary'], 'brand-500' => $theme['primary'], 'brand-600' => $theme['primary'],
+        'brand-700' => $theme['primary_hover'], 'brand-800' => $theme['dark'], 'brand-900' => $theme['dark'],
+        'accent-400' => $theme['primary_border'], 'accent-500' => $theme['primary'], 'accent-600' => $theme['primary'], 'accent-700' => $theme['dark'],
+        'ink' => $theme['dark'], 'surface-soft' => $theme['surface'],
+      ]) !!}
+    }
+
+    /* Ensure clean viewport scaling without breaking position: sticky */
+    html {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+    body {
+      overflow-x: clip;
+      max-width: 100%;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
+    /* Hide scrollbar for Chrome, Safari, Opera, Edge, and Firefox */
+    .scrollbar-none::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+    .scrollbar-none {
+      -ms-overflow-style: none !important;  /* IE and Edge */
+      scrollbar-width: none !important;  /* Firefox */
+    }
+
+    /* Prevent mobile auto-zoom on input focus (iOS Safari/Chrome zooms in if font-size < 16px) */
+    @media screen and (max-width: 768px) {
+      input[type="text"],
+      input[type="tel"],
+      input[type="email"],
+      input[type="number"],
+      input[type="password"],
+      input[type="search"],
+      select,
+      textarea {
+        font-size: 16px !important;
+      }
+    }
+
+    /* Primary Text Color Utilities */
+    .text-brand-600,
+    .text-brand-500 {
+      color: var(--brand-primary);
+    }
+
+    /* Navigation & Menu Hover Text Color -> Primary Color */
+    .site-header nav a:hover,
+    .site-header nav button:hover,
+    #catDropdownMenu a:hover,
+    #catDropdownMenu a:hover span,
+    #brandDropdownMenu a:hover,
+    #brandDropdownMenu a:hover span,
+    .group\/item:hover .group-hover\/item\:text-brand-600 {
+      color: var(--brand-primary);
+    }
+
+    .fk-badge,
+    .btn-primary {
+      background-color: var(--brand-primary) !important;
+      color: #ffffff !important;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--brand-hover) !important;
+      color: #ffffff !important;
+    }
+
+    .fk-add-btn,
+    .add-to-cart-btn,
+    .add-to-cart,
+    #pdAddToCart,
+    #qmAddToCartBtn {
+      background-color: var(--brand-primary) !important;
+      border: 1px solid var(--brand-primary) !important;
+      color: #ffffff !important;
+      border-radius: 10px !important;
+    }
+
+    .fk-add-btn:hover,
+    .add-to-cart-btn:hover,
+    .add-to-cart:hover,
+    #pdAddToCart:hover,
+    #qmAddToCartBtn:hover {
+      background-color: var(--brand-hover) !important;
+      border-color: var(--brand-hover) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
+    }
+
+    .site-header [data-open-cart],
+    .site-header [data-open-cart]:hover,
+    .site-header [data-open-cart]:focus {
+      background-color: transparent !important;
+      border-color: transparent !important;
+    }
+
+    /* Phone promo bar: endless scroll (two identical copies, moved by half) */
+    .promo-track { animation: promo-scroll var(--promo-dur, 20s) linear infinite; }
+    .promo-marquee b, .promo-marquee strong { color: #fff !important; font-weight: 800; }
+    @keyframes promo-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+    /* Phone header "Flash Sale" button: same shine sweep + breathing as the product page BUY NOW */
+    .flash-pill {
+      position: relative; overflow: hidden;
+      background: var(--brand-primary);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,.16), 0 2px 4px -2px rgba(0,0,0,.1);
+      animation: flash-pulse 3.2s ease-in-out infinite;
+    }
+    .flash-pill:hover { background: var(--brand-hover); }
+    .flash-pill::after {
+      content: ""; position: absolute; top: 0; left: 0; width: 150%; height: 100%; pointer-events: none;
+      background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.22) 30%, rgba(255,255,255,.6) 50%, rgba(255,255,255,.22) 70%, rgba(255,255,255,0) 100%);
+      animation: flash-shine 4.5s ease-in-out infinite;
+    }
+    .flash-pill:active { transform: scale(.97); }
+    /* Slow, long sweep: crosses the button in about 1.8 s, then rests */
+    @keyframes flash-shine { 0% { transform: translateX(-110%) skewX(-20deg); } 40%, 100% { transform: translateX(110%) skewX(-20deg); } }
+    @keyframes flash-pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 4px 6px -1px rgba(0,0,0,.16), 0 2px 4px -2px rgba(0,0,0,.1); }
+      50% { transform: scale(1.04); box-shadow: 0 6px 10px -2px rgba(0,0,0,.22), 0 3px 6px -2px rgba(0,0,0,.12); }
+    }
+    /* Hide carousel arrows when every slide already fits (Swiper marks them locked) */
+    .swiper-button-lock { display: none !important; }
+
+    /* Tap-to-copy coupon code + flash countdown inside the headlines */
+    /* Apple-style continuous corners in browsers that support it (others keep normal round corners). */
+    @supports (corner-shape: squircle) {
+      [class*="rounded-"]:not(.rounded-full):not(.rounded-none), .fk-card, .fk-add-btn, .btn-view-details, .toast { corner-shape: squircle; }
+    }
+    .promo-code { cursor: pointer; padding: 1px 7px; margin: 0 2px; border: 1.5px dashed rgba(255,255,255,.75); border-radius: 6px; background: rgba(255,255,255,.14); font-weight: 800; letter-spacing: .03em; }
+    .promo-code:active, .promo-code.is-copied { background: #fff; color: var(--brand-primary) !important; border-style: solid; }
+    .ticker-clock { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 6px; background: rgba(0,0,0,.28); font-variant-numeric: tabular-nums; font-weight: 800; }
+    /* News-ticker label: slanted right edge + blinking "live" dot */
+    .ticker-label { clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
+    .ticker-dot { animation: ticker-blink 1.2s ease-in-out infinite; box-shadow: 0 0 0 0 rgba(239,68,68,.7); }
+    @keyframes ticker-blink { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239,68,68,.7); } 50% { opacity: .45; box-shadow: 0 0 0 4px rgba(239,68,68,0); } }
+    .ticker-window { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 18px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 18px), transparent 100%); }
+    /* The ticker and Flash Sale button keep moving even with the phone's "Reduce motion" setting on (store owner's choice). */
+
+    /* Selected Variant Button Styling & Hover Fix */
+    .variant-btn.is-selected,
+    .variant-btn.is-selected:hover,
+    .variant-btn.is-selected:focus,
+    .variant-btn.is-selected:active {
+      background-color: #0c0a09 !important;
+      border-color: #0c0a09 !important;
+      color: #ffffff !important;
+    }
+    .variant-btn:not(.is-selected):hover {
+      background-color: #f5f5f4 !important;
+      border-color: #a8a29e !important;
+      color: #0c0a09 !important;
+    }
+
+    /* Shimmer / Flash Beam Effect for CTA Buttons */
+    @keyframes btnShimmerSweep {
+      0% {
+        transform: translateX(-160%) skewX(-20deg);
+      }
+      26%, 100% {
+        transform: translateX(260%) skewX(-20deg);
+      }
+    }
+
+    /* Eye-Catching Place Order Attention & Flash Effect */
+    @keyframes placeOrderPulseMotion {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 4px 12px -1px rgba(0, 0, 0, 0.18), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      }
+      50% {
+        transform: scale(1.02);
+        box-shadow: 0 8px 18px -2px rgba(0, 0, 0, 0.22), 0 0 0 3px rgba(255, 255, 255, 0.35);
+      }
+    }
+
+    .place-order-cta-effect {
+      position: relative !important;
+      overflow: hidden !important;
+      animation: placeOrderPulseMotion 3.2s ease-in-out infinite;
+    }
+
+    .place-order-cta-effect::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.5) 50%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      animation: btnShimmerSweep 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      pointer-events: none;
+    }
+
+    .place-order-cta-effect:hover {
+      animation-play-state: paused;
+      transform: translateY(-1px) scale(1.01);
+      box-shadow: 0 8px 20px -2px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    .place-order-cta-effect:active {
+      transform: scale(0.98) !important;
+    }
+
+    /* Dynamic Cart Bounce & Pulse Animations */
+    @keyframes cartPopBounce {
+      0% { transform: scale(1); }
+      25% { transform: scale(1.32) rotate(-9deg); }
+      50% { transform: scale(0.9) rotate(4deg); }
+      75% { transform: scale(1.1) rotate(-2deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    @keyframes cartPopBounceFixed {
+      0% { transform: translateY(-50%) scale(1); }
+      25% { transform: translateY(-50%) scale(1.32) rotate(-9deg); }
+      50% { transform: translateY(-50%) scale(0.9) rotate(4deg); }
+      75% { transform: translateY(-50%) scale(1.1) rotate(-2deg); }
+      100% { transform: translateY(-50%) scale(1) rotate(0deg); }
+    }
+    @keyframes cartPulseRing {
+      0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
+      70% { box-shadow: 0 0 0 16px rgba(37, 99, 235, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+    }
+    .cart-pop-bounce {
+      animation: cartPopBounce 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+      transform-origin: center center !important;
+    }
+    button[data-open-cart].fixed.cart-pop-bounce {
+      animation: cartPopBounceFixed 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+      transform-origin: right center !important;
+    }
+    .cart-pop-bounce::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      animation: cartPulseRing 0.7s ease-out;
+      pointer-events: none;
+    }
+  </style>
+
+  <link rel="stylesheet" href="{{ asset('theme/css/style.css') . '?v=' . (file_exists(public_path('theme/css/style.css')) ? filemtime(public_path('theme/css/style.css')) : '1') }}" />
+  <link rel="icon" href="{{ favicon_url() }}" />
+  <link rel="apple-touch-icon" href="{{ favicon_url() }}" />
+
+  <script type="application/ld+json">
+  {!! json_encode([
+    '@'.'context' => 'https://schema.org',
+    '@'.'type' => 'Organization',
+    'name' => site_name(),
+    'url' => url('/'),
+    'logo' => logo_url(),
+    'telephone' => setting('contact_phone'),
+    'email' => setting('contact_email'),
+  ], JSON_UNESCAPED_SLASHES) !!}
+  </script>
+
+  @include('partials.tracking-head')
+  <link rel="stylesheet" href="{{ asset('theme/css/tw-store.css') }}?v={{ @filemtime(public_path('theme/css/tw-store.css')) ?: '1' }}" />
+</head>
+
+<body class="@yield('body_class', 'bg-white text-ink antialiased')">
+  @include('partials.tracking-body')
+
+  @hasSection('checkout_header')
+    @yield('checkout_header')
+  @elseif(($headerVariant ?? 'full') === 'compact')
+    @include('storefront.partials.header-compact')
+  @else
+    @include('storefront.partials.header')
+  @endif
+
+  @if(session('status'))
+    <div class="max-w-7xl mx-auto px-4 sm:px-5 mt-4">
+      <div class="bg-white border border-brand-600/20 text-brand-700 text-sm font-semibold px-4 py-3 rounded-xl">{{ session('status') }}</div>
+    </div>
+  @endif
+
+  @yield('content')
+
+  @include('storefront.partials.footer')
+  @unless(request()->routeIs('product.show', 'checkout.*'))
+    @include('storefront.partials.bottom-nav')
+  @endunless
+  @include('storefront.partials.cart-drawer')
+  @include('storefront.partials.mobile-menu')
+  @include('storefront.partials.quick-select-modal')
+  @if(setting('size_guide_enabled', '0') === '1')
+    @include('storefront.partials.size-guide-modal')
+  @endif
+  @include('storefront.partials.whatsapp-widget')
+
+  <div id="overlay" data-drawer-overlay class="fixed inset-0 bg-ink/45 backdrop-blur-[2px] z-[55] opacity-0 pointer-events-none transition-opacity"></div>
+
+  {{-- Floating Side Quick Cart Widget: tablets and up, only once the bag has something in it.
+       Phones already have the cart in the sticky header, and the cart/checkout pages don't need it. --}}
+  @if(!request()->routeIs('checkout.*') && !request()->routeIs('cart.index'))
+    <button type="button" data-open-cart data-quick-cart class="{{ ($cartCount ?? 0) > 0 ? '' : 'qc-empty' }} hidden sm:flex fixed right-0 top-1/2 -translate-y-1/2 z-50 flex-col items-center rounded-l-xl shadow-2xl overflow-hidden focus:outline-none bg-white border border-r-0 border-brand-500/40 min-w-[58px] sm:min-w-[72px] transition-transform active:scale-95 cursor-pointer" aria-label="Quick Cart">
+      <div class="bg-brand-500 text-white p-2 sm:p-2.5 px-2.5 sm:px-3.5 flex flex-col items-center text-center w-full">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5 mb-0.5 sm:mb-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+        <span class="cart-count-text text-[10px] sm:text-xs font-black tracking-tight leading-none whitespace-nowrap">{{ ($cartCount ?? 0) }} {{ Str::plural('Item', ($cartCount ?? 0)) }}</span>
+      </div>
+      <div class="bg-white text-stone-800 p-1.5 sm:p-2 px-2 sm:px-3.5 text-[10px] sm:text-xs font-extrabold w-full text-center whitespace-nowrap border-t border-stone-100">
+        <span class="cart-total text-brand-600 font-extrabold">{{ money($cartSubtotal ?? 0) }}</span>
+      </div>
+    </button>
+  @endif
+
+  <button type="button" id="backToTop" data-back-top class="fixed {{ request()->routeIs('product.show') ? 'hidden lg:flex bottom-6 right-6' : (request()->routeIs('checkout.*') ? 'hidden' : 'bottom-[96px] md:bottom-6 right-5 sm:right-6') }} z-40 h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-stone-900/85 hover:bg-stone-950 text-white shadow-xl flex items-center justify-center opacity-0 pointer-events-none transition-all duration-300 backdrop-blur-xs border border-white/10 hover:scale-105 active:scale-95" aria-label="Back to top">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </button>
+
+  <script src="{{ asset('theme/js/auto-row.js') }}?v={{ filemtime(public_path('theme/js/auto-row.js')) }}"></script>
+  <script src="{{ asset('theme/js/storefront.js') }}?v={{ filemtime(public_path('theme/js/storefront.js')) }}"></script>
+  <script src="{{ asset('theme/vendor/swiper/swiper-bundle.min.js') }}"></script>
+  @stack('scripts')
+</body>
+</html>
